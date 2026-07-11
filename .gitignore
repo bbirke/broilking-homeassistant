@@ -1,0 +1,31 @@
+# Proprietary app / large binaries - NEVER commit
+*.apk
+*.xapk
+*.apks
+
+# Firmware artifacts pulled off the device (vendor-proprietary / device-specific) - NEVER commit
+init.js
+app.js
+conf*.json
+*.pem
+*.crt
+User.json
+user.json
+
+# Reverse-engineering tooling (kept locally, not part of the HACS integration)
+bk_bridge.py
+bk_probe.py
+fetch_fs.py
+requirements.txt
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

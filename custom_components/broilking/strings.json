@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Broil King Smoker",
+        "description": "Enter the smoker's IP address on your LAN. A device password is only needed if you set one in the iQue app.",
+        "data": {
+          "host": "Host / IP address",
+          "password": "Device password (optional)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the smoker at that address.",
+      "not_broilking": "That device answered, but it does not look like a Broil King smoker."
+    },
+    "abort": {
+      "already_configured": "This smoker is already configured."
+    }
+  }
+}
