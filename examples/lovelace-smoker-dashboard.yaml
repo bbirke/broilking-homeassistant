@@ -1,0 +1,98 @@
+# Broil King smoker dashboard (Lovelace YAML).
+# Paste into a new dashboard (Settings -> Dashboards -> + Add dashboard -> edit as YAML),
+# or into a view's cards. Pairs with examples/broilking_alarms.yaml.
+#
+# Entity IDs below assume the default device name "Broil King Smoker" and the
+# template entities from broilking_alarms.yaml. Adjust if your slugs differ.
+title: Smoker
+views:
+  - title: Smoker
+    path: smoker
+    icon: mdi:grill
+    cards:
+      # --- Alarm banners: only visible while an alarm is active ---
+      - type: conditional
+        conditions:
+          - entity: binary_sensor.broil_king_probe_1_alarm
+            state: "on"
+        card:
+          type: markdown
+          content: >-
+            ## ALARM - Meat Probe 1 reached its target
+
+            Probe 1 is at **{{ states('sensor.broil_king_smoker_meat_probe_1') }} deg C**
+            (target {{ states('input_number.broilking_probe1_alarm_temp')|int }} deg C).
+      - type: conditional
+        conditions:
+          - entity: binary_sensor.broil_king_probe_2_alarm
+            state: "on"
+        card:
+          type: markdown
+          content: >-
+            ## ALARM - Meat Probe 2 reached its target
+
+            Probe 2 is at **{{ states('sensor.broil_king_smoker_meat_probe_2') }} deg C**
+            (target {{ states('input_number.broilking_probe2_alarm_temp')|int }} deg C).
+      - type: conditional
+        conditions:
+          - entity: binary_sensor.broil_king_low_pellet_alarm
+            state: "on"
+        card:
+          type: markdown
+          content: >-
+            ## ALARM - Low on pellets
+
+            The smoker is reporting **low fuel**. Refill the pellet hopper.
+
+      # --- Grill control ---
+      - type: thermostat
+        entity: climate.broil_king_smoker
+        name: Grill
+
+      # --- Settable alarm targets + arm toggles ---
+      - type: entities
+        title: Probe alarm settings
+        show_header_toggle: false
+        entities:
+          - entity: input_boolean.broilking_probe1_alarm_enabled
+            name: Probe 1 alarm armed
+          - entity: input_number.broilking_probe1_alarm_temp
+            name: Probe 1 target temp
+          - type: divider
+          - entity: input_boolean.broilking_probe2_alarm_enabled
+            name: Probe 2 alarm armed
+          - entity: input_number.broilking_probe2_alarm_temp
+            name: Probe 2 target temp
+          - type: divider
+          - entity: input_boolean.broilking_lowfuel_alarm_enabled
+            name: Low pellet alarm armed
+
+      # --- Live status ---
+      - type: glance
+        title: Live status
+        columns: 3
+        entities:
+          - entity: sensor.broil_king_grill_temperature
+            name: Grill
+          - entity: sensor.broil_king_smoker_meat_probe_1
+            name: Probe 1
+          - entity: sensor.broil_king_smoker_meat_probe_2
+            name: Probe 2
+          - entity: sensor.broil_king_smoker_preset_mode
+            name: Mode
+          - entity: binary_sensor.broil_king_smoker_running
+            name: Running
+          - entity: binary_sensor.broil_king_smoker_low_fuel
+            name: Low fuel
+
+      # --- History ---
+      - type: history-graph
+        title: Temperatures (24 h)
+        hours_to_show: 24
+        entities:
+          - entity: sensor.broil_king_grill_temperature
+            name: Grill
+          - entity: sensor.broil_king_smoker_meat_probe_1
+            name: Probe 1
+          - entity: sensor.broil_king_smoker_meat_probe_2
+            name: Probe 2

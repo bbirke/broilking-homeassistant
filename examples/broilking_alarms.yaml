@@ -1,0 +1,154 @@
+# Broil King smoker: settable meat-probe alarms + low-pellet alarm.
+# Self-contained package (loaded via homeassistant: packages: !include_dir_named packages/).
+# Delivery: dashboard-only (persistent notifications + dashboard conditional cards).
+# Added by claude 2026-07-12.
+
+input_number:
+  broilking_probe1_alarm_temp:
+    name: Probe 1 alarm temp
+    min: 30
+    max: 120
+    step: 1
+    unit_of_measurement: "°C"
+    mode: box
+    icon: mdi:thermometer-alert
+  broilking_probe2_alarm_temp:
+    name: Probe 2 alarm temp
+    min: 30
+    max: 120
+    step: 1
+    unit_of_measurement: "°C"
+    mode: box
+    icon: mdi:thermometer-alert
+
+input_boolean:
+  broilking_probe1_alarm_enabled:
+    name: Probe 1 alarm armed
+    icon: mdi:bell-ring
+  broilking_probe2_alarm_enabled:
+    name: Probe 2 alarm armed
+    icon: mdi:bell-ring
+  broilking_lowfuel_alarm_enabled:
+    name: Low pellet alarm armed
+    icon: mdi:bell-ring
+
+# Template entities: a clean grill-temp sensor (from the climate attribute, so it
+# graphs and exports to InfluxDB) and three "alarm active" binary sensors that fold
+# threshold + armed state into one on/off signal used by both automations and the UI.
+template:
+  - sensor:
+      - name: "Broil King Grill Temperature"
+        unique_id: broilking_grill_temp
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        availability: "{{ state_attr('climate.broil_king_smoker','current_temperature') is not none }}"
+        state: "{{ state_attr('climate.broil_king_smoker','current_temperature') }}"
+  - binary_sensor:
+      - name: "Broil King Probe 1 Alarm"
+        unique_id: broilking_probe1_alarm
+        icon: mdi:thermometer-alert
+        state: >-
+          {{ is_state('input_boolean.broilking_probe1_alarm_enabled','on')
+             and states('sensor.broil_king_smoker_meat_probe_1') not in ['unknown','unavailable']
+             and states('sensor.broil_king_smoker_meat_probe_1')|float(-999)
+                 >= states('input_number.broilking_probe1_alarm_temp')|float(999) }}
+      - name: "Broil King Probe 2 Alarm"
+        unique_id: broilking_probe2_alarm
+        icon: mdi:thermometer-alert
+        state: >-
+          {{ is_state('input_boolean.broilking_probe2_alarm_enabled','on')
+             and states('sensor.broil_king_smoker_meat_probe_2') not in ['unknown','unavailable']
+             and states('sensor.broil_king_smoker_meat_probe_2')|float(-999)
+                 >= states('input_number.broilking_probe2_alarm_temp')|float(999) }}
+      - name: "Broil King Low Pellet Alarm"
+        unique_id: broilking_lowfuel_alarm
+        icon: mdi:gas-station
+        state: >-
+          {{ is_state('input_boolean.broilking_lowfuel_alarm_enabled','on')
+             and is_state('binary_sensor.broil_king_smoker_low_fuel','on') }}
+
+automation:
+  - id: broilking_probe1_reached
+    alias: "Broil King - Probe 1 reached target"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.broil_king_probe_1_alarm
+        to: "on"
+        for: "00:00:10"
+    action:
+      - service: persistent_notification.create
+        data:
+          notification_id: broilking_probe1
+          title: "Broil King: Probe 1 target reached"
+          message: >-
+            Meat probe 1 is at {{ states('sensor.broil_king_smoker_meat_probe_1') }} °C
+            (target {{ states('input_number.broilking_probe1_alarm_temp')|int }} °C).
+
+  - id: broilking_probe1_clear
+    alias: "Broil King - Probe 1 dismiss"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.broil_king_probe_1_alarm
+        to: "off"
+    action:
+      - service: persistent_notification.dismiss
+        data:
+          notification_id: broilking_probe1
+
+  - id: broilking_probe2_reached
+    alias: "Broil King - Probe 2 reached target"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.broil_king_probe_2_alarm
+        to: "on"
+        for: "00:00:10"
+    action:
+      - service: persistent_notification.create
+        data:
+          notification_id: broilking_probe2
+          title: "Broil King: Probe 2 target reached"
+          message: >-
+            Meat probe 2 is at {{ states('sensor.broil_king_smoker_meat_probe_2') }} °C
+            (target {{ states('input_number.broilking_probe2_alarm_temp')|int }} °C).
+
+  - id: broilking_probe2_clear
+    alias: "Broil King - Probe 2 dismiss"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.broil_king_probe_2_alarm
+        to: "off"
+    action:
+      - service: persistent_notification.dismiss
+        data:
+          notification_id: broilking_probe2
+
+  - id: broilking_low_fuel
+    alias: "Broil King - Low on pellets"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.broil_king_low_pellet_alarm
+        to: "on"
+    action:
+      - service: persistent_notification.create
+        data:
+          notification_id: broilking_lowfuel
+          title: "Broil King: Low on pellets"
+          message: "The smoker is reporting low fuel. Refill the pellet hopper."
+
+  - id: broilking_low_fuel_clear
+    alias: "Broil King - Pellets refilled"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.broil_king_low_pellet_alarm
+        to: "off"
+    action:
+      - service: persistent_notification.dismiss
+        data:
+          notification_id: broilking_lowfuel

@@ -41,6 +41,12 @@ One "Broil King Smoker" device with:
 Temperatures are shown in your HA unit; internally the grill always uses
 Fahrenheit and the integration converts.
 
+## Dashboards & alarms
+
+Optional, copy-paste recipes built on these entities live in
+[`examples/`](examples/README.md): a settable meat-probe alarm and a low-pellet
+alarm (Home Assistant package), plus a ready-made Lovelace dashboard.
+
 ## The protocol (decoded)
 
 - Transport: WebSocket `ws://<grill-ip>/rpc`, JSON-RPC, **no authentication** on
