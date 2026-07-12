@@ -5,6 +5,17 @@ A **fully local** Home Assistant integration for a Broil King iQue pellet smoker
 its JSON-RPC-over-WebSocket API - no cloud, no app, no AWS tokens. Reverse
 engineered from the firmware's own `init.js` and the official app.
 
+## Tested hardware / disclaimer
+
+This integration was developed and tested against **one** grill only: a
+**Broil King Regal Pellet 500 Pro Smoker (2024 model)** running the `Broil_King`
+iQue firmware. It will most likely work on other iQue-based Broil King pellet
+grills that expose the same local RPC API, but that is **untested** - temperature
+ranges, command codes, or reported fields may differ on other models.
+
+Use at your own risk: this integration can change your grill's setpoint and mode.
+Not affiliated with or endorsed by Broil King / Onward Manufacturing.
+
 ## Install (HACS)
 
 1. HACS -> Integrations -> three-dot menu -> **Custom repositories** -> add this
