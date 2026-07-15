@@ -35,5 +35,11 @@ class BroilKingEntity(CoordinatorEntity[BroilKingCoordinator]):
         )
 
     @property
+    def available(self) -> bool:
+        # The grill being off/unplugged is normal; surface it as "unavailable"
+        # rather than an error state.
+        return self.coordinator.last_update_success and self.coordinator.reachable
+
+    @property
     def _data(self) -> dict:
         return self.coordinator.data or {}
