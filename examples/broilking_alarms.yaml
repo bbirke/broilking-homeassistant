@@ -32,15 +32,6 @@ input_boolean:
     name: Low pellet alarm armed
     icon: mdi:bell-ring
 
-# Mirrors the grill's own cook timer so the dashboard gets a live countdown bar.
-# The integration sets the timer on the grill and fires broilking_timer_set; the
-# automations below keep this helper in step with it.
-timer:
-  broilking_cook_timer:
-    name: Cook timer
-    icon: mdi:timer-sand
-    restore: true
-
 # Template entities: a clean grill-temp sensor (from the climate attribute, so it
 # graphs and exports to InfluxDB) and three "alarm active" binary sensors that fold
 # threshold + armed state into one on/off signal used by both automations and the UI.
@@ -163,39 +154,20 @@ automation:
           notification_id: broilking_lowfuel
 
   # --- Cook timer ---
-  # number.broil_king_smoker_cook_timer sends the timer to the grill and fires
-  # this event; the helper above provides the countdown HA can display.
-  - id: broilking_cook_timer_sync
-    alias: "Broil King - Cook timer set"
-    mode: single
-    trigger:
-      - platform: event
-        event_type: broilking_timer_set
-    action:
-      - service: persistent_notification.dismiss
-        data:
-          notification_id: broilking_cook_timer
-      - choose:
-          - conditions: "{{ trigger.event.data.minutes | int > 0 }}"
-            sequence:
-              - service: timer.start
-                target:
-                  entity_id: timer.broilking_cook_timer
-                data:
-                  duration: "{{ trigger.event.data.minutes | int * 60 }}"
-        default:
-          - service: timer.cancel
-            target:
-              entity_id: timer.broilking_cook_timer
-
+  # The grill runs the countdown itself and reports it back, so this just
+  # watches the remaining-minutes sensor fall to zero.
   - id: broilking_cook_timer_finished
     alias: "Broil King - Cook timer finished"
     mode: single
     trigger:
-      - platform: event
-        event_type: timer.finished
-        event_data:
-          entity_id: timer.broilking_cook_timer
+      - platform: numeric_state
+        entity_id: sensor.broil_king_smoker_cook_timer_remaining
+        below: 1
+    condition:
+      - condition: template
+        value_template: >-
+          {{ trigger.from_state is not none
+             and trigger.from_state.state | float(0) >= 1 }}
     action:
       - service: persistent_notification.create
         data:

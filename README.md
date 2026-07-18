@@ -35,20 +35,19 @@ One "Broil King Smoker" device with:
 - **climate.broil_king_smoker** - current grill temp, settable target temperature,
   on/off, and preset modes Smoke / Cook / High.
 - **sensor** - Meat Probe 1 & 2 (and their targets, disabled by default), Cook
-  Time, Preset Mode, Cook Timer Ends / Cook Timer Remaining.
+  Time, Preset Mode, Cook Timer Remaining.
 - **binary_sensor** - Running, Low Fuel (pellet warning).
 - **number.broil_king_smoker_cook_timer** - cook timer in minutes. Setting it
   arms the grill's own timer; 0 clears it.
 
 ### Cook timer
 
-The firmware accepts a timer (hours + minutes) but never reports it back, so
-Home Assistant mirrors it: the Cook Timer number is the value last sent, and the
-Cook Timer Ends / Remaining sensors count it down locally. Both survive a
-restart. Setting the number also fires a `broilking_timer_set` event
-(`device_id`, `entity_id`, `minutes`, `ends_at`) so automations can drive a
-`timer` helper or a notification - see [`examples/`](examples/README.md) for a
-ready-made countdown + alert.
+Two-way. Writing the Cook Timer number sends the timer to the control board
+(action 6), and the grill echoes the configured duration back in
+`alarm_Hour_Set` / `alarm_Minute_Set`, so a timer set on the grill's own panel
+or in the iQue app shows up in Home Assistant too. The board runs the countdown
+itself and reports what is left in `alarm_Hour` / `alarm_Minute`, which is the
+Cook Timer Remaining sensor - HA does not keep its own clock.
 
 Temperatures are shown in your HA unit; internally the grill always uses
 Fahrenheit and the integration converts.

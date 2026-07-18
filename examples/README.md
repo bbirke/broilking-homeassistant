@@ -35,9 +35,8 @@ restart, not just a reload). It creates:
   `..._low_pellet_alarm` - "alarm active" signals (armed **and** condition met).
 - Automations that raise / auto-dismiss a persistent notification when each alarm
   turns on / off. A 10 s debounce avoids flapping.
-- `timer.broilking_cook_timer` - a countdown helper kept in step with the grill's
-  cook timer, plus automations that start/cancel it on the integration's
-  `broilking_timer_set` event and notify when it runs out.
+- An automation that notifies when the grill's cook timer runs out (it watches
+  `sensor.broil_king_smoker_cook_timer_remaining` fall to zero).
 
 > Entity IDs are slugified from the friendly names. If your device is not named
 > "Broil King Smoker", check the actual IDs under Settings -> Devices & Services ->
@@ -57,11 +56,11 @@ grill control, the cook timer, live status, and a 24 h history graph.
 
 ## 3. Cook timer
 
-The **Cook timer** card sets `number.broil_king_smoker_cook_timer` in minutes.
-That sends the timer to the grill (its display counts down too) and starts
-`timer.broilking_cook_timer` so the dashboard shows a live countdown bar; a
-persistent notification fires when it elapses. Set it to **0** to cancel.
+The **Cook timer** card sets `number.broil_king_smoker_cook_timer` in minutes,
+which arms the grill's own timer. Set it to **0** to cancel.
 
-The grill never reports its timer back over the API, so the countdown is Home
-Assistant's own. If you change the timer on the grill's control panel, HA will
-not see it.
+The countdown is the grill's, not Home Assistant's:
+`sensor.broil_king_smoker_cook_timer_remaining` is what the control board
+reports as left. So a timer set on the grill's panel or in the iQue app shows up
+here too, and the two can never drift apart. The package includes an automation
+that raises a persistent notification when the remaining minutes reach zero.

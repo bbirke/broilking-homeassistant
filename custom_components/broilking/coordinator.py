@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -29,20 +29,6 @@ class BroilKingCoordinator(DataUpdateCoordinator[dict]):
         # smoker is the normal resting state (e.g. all winter), so entities key
         # their availability off this instead of it being treated as an error.
         self.reachable = False
-        # Local mirror of the cook timer: what we last sent to the grill, and
-        # when it is due to run out. The firmware accepts a timer command but
-        # never echoes the timer back, so this is the only record we have. Both
-        # are None while no timer is set.
-        self.timer_minutes: float | None = None
-        self.timer_ends_at: datetime | None = None
-
-    def set_timer_state(
-        self, minutes: float | None, ends_at: datetime | None
-    ) -> None:
-        """Record the cook timer locally and push it to the timer entities."""
-        self.timer_minutes = minutes
-        self.timer_ends_at = ends_at
-        self.async_update_listeners()
 
     async def _async_update_data(self) -> dict:
         try:
