@@ -18,4 +18,4 @@ TEMP_STEP_C = 1.0
 # but the control board only reports an hour byte back, so keep both ends within
 # what it can echo.
 MAX_TIMER_MINUTES = 99 * 60 + 59
-TIMER_STEP_MINUTES = 5
+TIMER_STEP_MINUTES = 1
