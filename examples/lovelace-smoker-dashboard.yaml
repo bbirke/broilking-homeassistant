@@ -49,6 +49,18 @@ views:
         entity: climate.broil_king_smoker
         name: Grill
 
+      # --- Cook timer: set it here, it goes to the grill too ---
+      - type: entities
+        title: Cook timer
+        show_header_toggle: false
+        entities:
+          - entity: number.broil_king_smoker_cook_timer
+            name: Set timer (minutes)
+          - entity: timer.broilking_cook_timer
+            name: Countdown
+          - entity: sensor.broil_king_smoker_cook_timer_ends
+            name: Ends at
+
       # --- Settable alarm targets + arm toggles ---
       - type: entities
         title: Probe alarm settings

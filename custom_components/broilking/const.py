@@ -13,3 +13,13 @@ MODE_IDS = {v: k for k, v in MODES.items()}
 MIN_TEMP_C = 82   # 180 F
 MAX_TEMP_C = 316  # 600 F
 TEMP_STEP_C = 1.0
+
+# Cook timer. The firmware takes the timer as two bytes (hours, minutes) and
+# never reports it back in GetCurrentTemperatures, so HA mirrors it locally.
+MAX_TIMER_MINUTES = 23 * 60 + 59  # 23:59, same ceiling the iQue app offers
+TIMER_STEP_MINUTES = 5
+
+# Fired on the HA event bus whenever the cook timer is set or cleared, so
+# automations can drive a timer helper / notification. Data: device_id,
+# entity_id, minutes, ends_at (ISO 8601, null when cleared).
+EVENT_TIMER_SET = "broilking_timer_set"
