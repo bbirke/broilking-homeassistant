@@ -12,6 +12,9 @@ conf*.json
 User.json
 user.json
 
+# Private research report (device IDs, SSID, vulnerability details) - do not publish
+REPORT.md
+
 # Reverse-engineering tooling (kept locally, not part of the HACS integration)
 bk_bridge.py
 bk_probe.py
