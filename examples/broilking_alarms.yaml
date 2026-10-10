@@ -1,4 +1,4 @@
-# Broil King smoker: settable meat-probe alarms + low-pellet alarm + cook timer.
+# Broil King smoker: settable meat-probe alarms + cook timer.
 # Self-contained package (loaded via homeassistant: packages: !include_dir_named packages/).
 # Delivery: dashboard-only (persistent notifications + dashboard conditional cards).
 # Added by claude 2026-07-12, cook timer added 2026-07-18.
@@ -28,12 +28,9 @@ input_boolean:
   broilking_probe2_alarm_enabled:
     name: Probe 2 alarm armed
     icon: mdi:bell-ring
-  broilking_lowfuel_alarm_enabled:
-    name: Low pellet alarm armed
-    icon: mdi:bell-ring
 
 # Template entities: a clean grill-temp sensor (from the climate attribute, so it
-# graphs and exports to InfluxDB) and three "alarm active" binary sensors that fold
+# graphs and exports to InfluxDB) and two "alarm active" binary sensors that fold
 # threshold + armed state into one on/off signal used by both automations and the UI.
 template:
   - sensor:
@@ -61,12 +58,6 @@ template:
              and states('sensor.broil_king_smoker_meat_probe_2') not in ['unknown','unavailable']
              and states('sensor.broil_king_smoker_meat_probe_2')|float(-999)
                  >= states('input_number.broilking_probe2_alarm_temp')|float(999) }}
-      - name: "Broil King Low Pellet Alarm"
-        unique_id: broilking_lowfuel_alarm
-        icon: mdi:gas-station
-        state: >-
-          {{ is_state('input_boolean.broilking_lowfuel_alarm_enabled','on')
-             and is_state('binary_sensor.broil_king_smoker_low_fuel','on') }}
 
 automation:
   - id: broilking_probe1_reached
@@ -126,32 +117,6 @@ automation:
       - service: persistent_notification.dismiss
         data:
           notification_id: broilking_probe2
-
-  - id: broilking_low_fuel
-    alias: "Broil King - Low on pellets"
-    mode: single
-    trigger:
-      - platform: state
-        entity_id: binary_sensor.broil_king_low_pellet_alarm
-        to: "on"
-    action:
-      - service: persistent_notification.create
-        data:
-          notification_id: broilking_lowfuel
-          title: "Broil King: Low on pellets"
-          message: "The smoker is reporting low fuel. Refill the pellet hopper."
-
-  - id: broilking_low_fuel_clear
-    alias: "Broil King - Pellets refilled"
-    mode: single
-    trigger:
-      - platform: state
-        entity_id: binary_sensor.broil_king_low_pellet_alarm
-        to: "off"
-    action:
-      - service: persistent_notification.dismiss
-        data:
-          notification_id: broilking_lowfuel
 
   # --- Cook timer ---
   # The grill runs the countdown itself and reports it back, so this just

@@ -19,7 +19,7 @@ from .entity import BroilKingEntity
 
 @dataclass(frozen=True, kw_only=True)
 class BKBinaryDescription(BinarySensorEntityDescription):
-    value: Callable[[dict], bool]
+    value: Callable[[dict], bool | None]
 
 
 BINARY_SENSORS: tuple[BKBinaryDescription, ...] = (
@@ -28,11 +28,16 @@ BINARY_SENSORS: tuple[BKBinaryDescription, ...] = (
         device_class=BinarySensorDeviceClass.POWER,
         value=lambda d: bool(d.get("moduleIsOn")),
     ),
+    # Firmware v042.42 does not report a pellet level: GetCurrentTemperatures
+    # has no lowFuel field and the control board's UART status frame has no byte
+    # for it. Reading the missing key as False showed a permanent "off" that
+    # looked like a working all-clear, so report unknown unless the grill
+    # actually sends the field.
     BKBinaryDescription(
         key="low_fuel", name="Low Fuel",
         device_class=BinarySensorDeviceClass.PROBLEM,
         icon="mdi:gas-station",
-        value=lambda d: bool(d.get("lowFuel")),
+        value=lambda d: bool(d["lowFuel"]) if "lowFuel" in d else None,
     ),
 )
 
@@ -50,5 +55,5 @@ class BroilKingBinarySensor(BroilKingEntity, BinarySensorEntity):
         self.entity_description = description
 
     @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         return self.entity_description.value(self._data)

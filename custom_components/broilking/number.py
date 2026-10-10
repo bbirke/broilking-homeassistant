@@ -1,16 +1,26 @@
-"""Number entities for the Broil King smoker (cook timer)."""
+"""Number entities for the Broil King smoker (cook timer, probe targets)."""
 from __future__ import annotations
 
 import asyncio
 
-from homeassistant.components.number import NumberEntity, NumberMode
+from homeassistant.components.number import (
+    NumberDeviceClass,
+    NumberEntity,
+    NumberMode,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTime
+from homeassistant.const import UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, MAX_TIMER_MINUTES, TIMER_STEP_MINUTES
-from .entity import BroilKingEntity
+from .const import (
+    DOMAIN,
+    MAX_TIMER_MINUTES,
+    PROBE_TARGET_MAX_C,
+    PROBE_TARGET_MIN_C,
+    TIMER_STEP_MINUTES,
+)
+from .entity import BroilKingEntity, c_to_f, f_to_c
 
 # The control board needs ~1.5 s to accept a timer write and report it back.
 BOARD_ACK_DELAY = 2.0
@@ -20,7 +30,13 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([BroilKingCookTimer(coordinator)])
+    async_add_entities(
+        [
+            BroilKingCookTimer(coordinator),
+            BroilKingProbeTarget(coordinator, 1),
+            BroilKingProbeTarget(coordinator, 2),
+        ]
+    )
 
 
 class BroilKingCookTimer(BroilKingEntity, NumberEntity):
@@ -66,6 +82,49 @@ class BroilKingCookTimer(BroilKingEntity, NumberEntity):
         try:
             # Not async_request_refresh(): that one is debounced by ~10 s, which
             # is the whole reason the value used to appear to bounce back.
+            await asyncio.sleep(BOARD_ACK_DELAY)
+            await self.coordinator.async_refresh()
+        finally:
+            self._pending = None
+            self.async_write_ha_state()
+
+
+class BroilKingProbeTarget(BroilKingEntity, NumberEntity):
+    """Target temperature of a meat probe, in degrees C.
+
+    Two-way like the cook timer: writing sends the setpoint to the control board
+    (action 2 / 3, Fahrenheit) and the grill reports it back in
+    probe_<n>_Set_Temp, so a target set on the grill's panel shows up here too.
+    """
+
+    _attr_device_class = NumberDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_native_min_value = PROBE_TARGET_MIN_C
+    _attr_native_max_value = PROBE_TARGET_MAX_C
+    _attr_native_step = 1
+    _attr_mode = NumberMode.BOX
+    _attr_icon = "mdi:thermometer-check"
+
+    def __init__(self, coordinator, probe: int):
+        super().__init__(coordinator, f"probe_{probe}_target_set")
+        self._probe = probe
+        self._attr_name = f"Probe {probe} Target Temperature"
+        self._pending: float | None = None
+
+    @property
+    def native_value(self) -> float | None:
+        if self._pending is not None:
+            return self._pending
+        return f_to_c(self._data.get(f"probe_{self._probe}_Set_Temp"))
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.coordinator.client.async_set_probe_target_f(
+            self._probe, c_to_f(value)
+        )
+
+        self._pending = float(value)
+        self.async_write_ha_state()
+        try:
             await asyncio.sleep(BOARD_ACK_DELAY)
             await self.coordinator.async_refresh()
         finally:

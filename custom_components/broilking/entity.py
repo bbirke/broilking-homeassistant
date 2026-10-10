@@ -32,6 +32,7 @@ class BroilKingEntity(CoordinatorEntity[BroilKingCoordinator]):
             name="Broil King Smoker",
             manufacturer="Broil King",
             model="iQue Pellet",
+            sw_version=coordinator.info.get("fw_version"),
         )
 
     @property
