@@ -33,16 +33,6 @@ views:
 
             Probe 2 is at **{{ states('sensor.broil_king_smoker_meat_probe_2') }} deg C**
             (target {{ states('input_number.broilking_probe2_alarm_temp')|int }} deg C).
-      - type: conditional
-        conditions:
-          - entity: binary_sensor.broil_king_low_pellet_alarm
-            state: "on"
-        card:
-          type: markdown
-          content: >-
-            ## ALARM - Low on pellets
-
-            The smoker is reporting **low fuel**. Refill the pellet hopper.
 
       # --- Grill control ---
       - type: thermostat
@@ -73,9 +63,6 @@ views:
             name: Probe 2 alarm armed
           - entity: input_number.broilking_probe2_alarm_temp
             name: Probe 2 target temp
-          - type: divider
-          - entity: input_boolean.broilking_lowfuel_alarm_enabled
-            name: Low pellet alarm armed
 
       # --- Live status ---
       - type: glance
@@ -92,8 +79,8 @@ views:
             name: Mode
           - entity: binary_sensor.broil_king_smoker_running
             name: Running
-          - entity: binary_sensor.broil_king_smoker_low_fuel
-            name: Low fuel
+          - entity: sensor.broil_king_smoker_cook_time
+            name: Cook time
 
       # --- History ---
       - type: history-graph

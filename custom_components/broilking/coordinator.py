@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .api import BroilKingClient, BroilKingError
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, INFO_SCAN_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,6 +30,9 @@ class BroilKingCoordinator(DataUpdateCoordinator[dict]):
         # smoker is the normal resting state (e.g. all winter), so entities key
         # their availability off this instead of it being treated as an error.
         self.reachable = False
+        # Last Sys.GetInfo reply, for the diagnostic sensors and device info.
+        self.info: dict = {}
+        self._info_fetched_at = 0.0
 
     async def _async_update_data(self) -> dict:
         try:
@@ -42,4 +46,19 @@ class BroilKingCoordinator(DataUpdateCoordinator[dict]):
             self.reachable = False
             return {}
         self.reachable = True
+        await self._async_update_info()
         return data or {}
+
+    async def _async_update_info(self) -> None:
+        # Sys.GetInfo (firmware, uptime, free RAM) changes slowly, so it is not
+        # fetched on every temperature poll. A failure here only leaves the
+        # diagnostic sensors stale; it never marks the grill offline.
+        now = time.monotonic()
+        if self.info and now - self._info_fetched_at < INFO_SCAN_INTERVAL:
+            return
+        try:
+            self.info = await self.client.async_get_info()
+        except BroilKingError as exc:
+            _LOGGER.debug("Sys.GetInfo failed: %s", exc)
+            return
+        self._info_fetched_at = now

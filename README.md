@@ -36,9 +36,24 @@ One "Broil King Smoker" device with:
   on/off, and preset modes Smoke / Cook / High.
 - **sensor** - Meat Probe 1 & 2 (and their targets, disabled by default), Cook
   Time, Preset Mode, Cook Timer Remaining.
-- **binary_sensor** - Running, Low Fuel (pellet warning).
+- **sensor (diagnostic)** - Firmware, Uptime, Free RAM (and its low watermark,
+  disabled by default), read from `Sys.GetInfo` once a minute. The firmware
+  version is also shown on the device page.
+- **binary_sensor** - Running, Low Fuel (see below).
 - **number.broil_king_smoker_cook_timer** - cook timer in minutes. Setting it
   arms the grill's own timer; 0 clears it.
+- **number.broil_king_smoker_probe_1_target_temperature** / **..._probe_2_...** -
+  meat probe targets, two-way like the cook timer: setting one sends it to the
+  grill (action 2 / 3), and a target set on the grill's panel shows up here.
+
+### Low Fuel
+
+Firmware v042.42 does not report a pellet level: `GetCurrentTemperatures` has no
+`lowFuel` field, and the control board's UART status frame has no byte for it.
+On that firmware the Low Fuel sensor stays **unknown** rather than showing a
+reassuring but meaningless "off". It only reports on/off if a grill actually
+sends the field. For a fuel warning on v042.42, watch for the grill temperature
+dropping while the smoker is running.
 
 ### Cook timer
 
@@ -55,7 +70,7 @@ Fahrenheit and the integration converts.
 ## Dashboards & alarms
 
 Optional, copy-paste recipes built on these entities live in
-[`examples/`](examples/README.md): a settable meat-probe alarm and a low-pellet
+[`examples/`](examples/README.md): a settable meat-probe alarm and a cook-timer
 alarm (Home Assistant package), plus a ready-made Lovelace dashboard.
 
 ## The protocol (decoded)

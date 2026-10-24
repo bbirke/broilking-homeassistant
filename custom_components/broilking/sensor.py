@@ -11,7 +11,12 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTemperature, UnitOfTime
+from homeassistant.const import (
+    EntityCategory,
+    UnitOfInformation,
+    UnitOfTemperature,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -22,6 +27,8 @@ from .entity import BroilKingEntity, f_to_c
 @dataclass(frozen=True, kw_only=True)
 class BKSensorDescription(SensorEntityDescription):
     value: Callable[[dict], object]
+    # True: value() reads the Sys.GetInfo reply instead of the temperature dict.
+    from_info: bool = False
 
 
 def _probe(raw):
@@ -80,6 +87,45 @@ SENSORS: tuple[BKSensorDescription, ...] = (
         value=lambda d: (d.get("alarm_Hour") or 0) * 60
         + (d.get("alarm_Minute") or 0),
     ),
+    # --- Diagnostics, from Sys.GetInfo (refreshed every INFO_SCAN_INTERVAL) ---
+    BKSensorDescription(
+        key="firmware", name="Firmware",
+        icon="mdi:chip",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        from_info=True,
+        value=lambda i: i.get("fw_version"),
+    ),
+    BKSensorDescription(
+        key="uptime", name="Uptime",
+        device_class=SensorDeviceClass.DURATION,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.HOURS,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        from_info=True,
+        value=lambda i: i.get("uptime"),
+    ),
+    # The ESP32 runs the mJS app with only a few dozen KB to spare; a shrinking
+    # free heap is the early sign of the module about to hang or reboot.
+    BKSensorDescription(
+        key="ram_free", name="Free RAM",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.BYTES,
+        suggested_unit_of_measurement=UnitOfInformation.KILOBYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        from_info=True,
+        value=lambda i: i.get("ram_free"),
+    ),
+    BKSensorDescription(
+        key="ram_min_free", name="Free RAM Low Watermark",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.BYTES,
+        suggested_unit_of_measurement=UnitOfInformation.KILOBYTES,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        from_info=True,
+        value=lambda i: i.get("ram_min_free"),
+    ),
 )
 
 
@@ -97,4 +143,6 @@ class BroilKingSensor(BroilKingEntity, SensorEntity):
 
     @property
     def native_value(self):
+        if self.entity_description.from_info:
+            return self.entity_description.value(self.coordinator.info)
         return self.entity_description.value(self._data)
